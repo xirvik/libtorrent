@@ -234,6 +234,12 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
     else
       reason = e_handshake_duplicate;
 
+    // An inactive download must not arm the 600s reconnect filter, or the
+    // peer stays unreachable long after the download is started again.
+    if (reason == e_handshake_inactive_download &&
+        handshake->peer_info() != NULL)
+      handshake->peer_info()->set_last_handshake(0);
+
     LT_LOG_SA_C(handshake->peer_info()->socket_address(),
                 "Handshake dropped: %s.",
                 strerror(reason));
@@ -250,6 +256,9 @@ HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
                          "inactive handshake.");
 
   const utils::socket_address* sa = handshake->socket_address();
+
+  if (error == e_handshake_inactive_download && handshake->peer_info() != NULL)
+    handshake->peer_info()->set_last_handshake(0);
 
   erase(handshake);
   handshake->deactivate_connection();
