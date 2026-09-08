@@ -10,6 +10,8 @@
 #include "torrent/object.h"
 #include "torrent/object_static_map.h"
 #include "torrent/object_stream.h"
+
+#include <charconv>
 #include "torrent/utils/algorithm.h"
 #include "torrent/utils/string_manip.h"
 #include "utils/sha1.h"
@@ -39,49 +41,43 @@ object_read_string(std::istream* input, std::string& str) {
 }
 
 const char*
-object_read_bencode_c_value(const char* first,
-                            const char* last,
-                            int64_t&    value) {
-  if (first == last)
-    return first;
+object_read_bencode_c_value(const char* first, const char* last, int64_t& value) {
+  auto errc = std::from_chars(first, last, value, 10);
 
-  bool neg = false;
+  if (errc.ec != std::errc() || errc.ptr == first)
+    throw torrent::bencode_error("Invalid bencode data: invalid integer.");
+
+  if (errc.ptr >= last || *errc.ptr != 'e')
+    throw torrent::bencode_error("Invalid bencode data: missing 'e' terminator.");
 
   if (*first == '-') {
-    // Don't allow '-0', or '-' followed by non-numeral.
-    if ((first + 1) == last || *(first + 1) <= '0' || *(first + 1) > '9')
-      return first;
+    if (value == 0)
+      throw torrent::bencode_error("Invalid bencode data: negative zero is not allowed.");
 
-    neg = true;
-    first++;
+    if (*(first + 1) == '0' && errc.ptr != first + 2)
+      throw torrent::bencode_error("Invalid bencode data: leading zeros are not allowed.");
+
+  } else {
+    if (*first == '0' && errc.ptr != first + 1)
+      throw torrent::bencode_error("Invalid bencode data: leading zeros are not allowed.");
   }
 
-  value = 0;
-
-  while (first != last && *first >= '0' && *first <= '9')
-    value = value * 10 + (*first++ - '0');
-
-  if (neg)
-    value = -value;
-
-  return first;
+  return errc.ptr + 1;
 }
 
 raw_string
 object_read_bencode_c_string(const char* first, const char* last) {
-  // Set the most-significant bit so that if there are no numbers in
-  // the input it will fail the length check, while "0" will shift the
-  // bit out.
-  unsigned int length = 0x1 << (std::numeric_limits<unsigned int>::digits - 1);
+  uint32_t length{};
 
-  while (first != last && *first >= '0' && *first <= '9')
-    length = length * 10 + (*first++ - '0');
+  auto errc = std::from_chars(first, last, length, 10);
 
-  if (length + 1 > (unsigned int)std::distance(first, last) ||
-      length + 1 == 0 || *first++ != ':')
-    throw torrent::bencode_error("Invalid bencode data.");
+  if (errc.ec != std::errc() || errc.ptr == first || errc.ptr == last || *errc.ptr != ':')
+    throw torrent::bencode_error("Invalid bencode data: string length is invalid.");
 
-  return raw_string(first, length);
+  if (std::distance(errc.ptr + 1, last) < static_cast<std::ptrdiff_t>(length))
+    throw torrent::bencode_error("Invalid bencode data: string length exceeds available data.");
+
+  return raw_string(errc.ptr + 1, length);
 }
 
 // Could consider making this non-recursive, but they seldomly are
@@ -191,12 +187,7 @@ object_read_bencode_c(const char* first,
   switch (*first) {
     case 'i':
       *object = Object::create_value();
-      first = object_read_bencode_c_value(first + 1, last, object->as_value());
-
-      if (first == last || *first++ != 'e')
-        break;
-
-      return first;
+      return object_read_bencode_c_value(first + 1, last, object->as_value());
 
     case 'l':
       if (++depth >= 1024)

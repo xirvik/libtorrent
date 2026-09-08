@@ -194,7 +194,7 @@ Chunk::preload(uint32_t position, uint32_t length, bool useAdvise) {
                 *last  = (char*)data.first + data.second;
            first < last;
            first += 4096)
-        volatile char __attribute__((unused)) touchChunk = *(char*)data.first;
+        volatile char __attribute__((unused)) touchChunk = *first;
 
       // Make sure we touch the last page in the range.
       volatile char __attribute__((unused)) touchChunk =

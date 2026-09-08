@@ -84,6 +84,10 @@ public:
     return *(m_data + n);
   }
 
+  unsigned char at_uchar(size_type n) const {
+    return static_cast<unsigned char>(*(m_data + n));
+  }
+
   value_type* data() {
     return m_data;
   }
