@@ -61,6 +61,8 @@ LibTorrent_Test_Torrent_Net_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/net/test_socket_address.h
 
 LibTorrent_Test_Torrent_Runtime_SOURCES = $(LibTorrent_Test_Common) \
+	torrent/runtime/test_initialize.cc \
+	torrent/runtime/test_initialize.h \
 	torrent/runtime/test_socket_manager.cc \
 	torrent/runtime/test_socket_manager.h
 

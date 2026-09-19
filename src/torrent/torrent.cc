@@ -13,6 +13,7 @@
 #include "net/thread_net.h"
 #include "torrent/exceptions.h"
 #include "torrent/system/poll.h"
+#include "torrent/system/thread.h"
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
 #include "tracker/thread_tracker.h"
@@ -59,6 +60,21 @@ initialize_main_thread() {
   ThreadMain::thread_main()->init_thread();
 }
 
+namespace {
+
+// A thread that never reached start_thread() has not run cleanup_thread(), and its members
+// assert when destroyed from another thread, so only a running thread is torn down here.
+void
+stop_and_destroy_thread(system::Thread* thread, void (*destroy_thread)()) {
+  if (thread == nullptr || !thread->is_active())
+    return;
+
+  thread->stop_thread_wait();
+  destroy_thread();
+}
+
+} // namespace
+
 void
 initialize() {
   if (manager != nullptr)
@@ -67,23 +83,40 @@ initialize() {
   instrumentation_initialize();
   curl_global_init(CURL_GLOBAL_ALL);
 
-  manager = new Manager;
+  auto new_manager = new Manager;
 
-  ThreadDisk::create_thread();
-  ThreadNet::create_thread();
-  ThreadTracker::create_thread();
+  manager = new_manager;
 
-  runtime::socket_manager()->set_max_size_and_adjust(this_thread::poll()->open_max());
+  try {
+    ThreadDisk::create_thread();
+    ThreadNet::create_thread();
+    ThreadTracker::create_thread();
 
-  ThreadMain::thread_main()->init_after_setup();
+    runtime::socket_manager()->set_max_size_and_adjust(this_thread::poll()->open_max());
 
-  disk_thread::thread()->init_thread();
-  net_thread::thread()->init_thread();
-  tracker_thread::thread()->init_thread();
+    ThreadMain::thread_main()->init_after_setup();
 
-  disk_thread::thread()->start_thread();
-  net_thread::thread()->start_thread();
-  tracker_thread::thread()->start_thread();
+    disk_thread::thread()->init_thread();
+    net_thread::thread()->init_thread();
+    tracker_thread::thread()->init_thread();
+
+    disk_thread::thread()->start_thread();
+    net_thread::thread()->start_thread();
+    tracker_thread::thread()->start_thread();
+
+  } catch (...) {
+    manager = nullptr;
+
+    stop_and_destroy_thread(tracker_thread::thread(), &ThreadTracker::destroy_thread);
+    stop_and_destroy_thread(net_thread::thread(), &ThreadNet::destroy_thread);
+    stop_and_destroy_thread(disk_thread::thread(), &ThreadDisk::destroy_thread);
+
+    new_manager->cleanup();
+    delete new_manager;
+
+    curl_global_cleanup();
+    throw;
+  }
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
