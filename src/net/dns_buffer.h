@@ -43,7 +43,8 @@ struct DnsBufferRequester {
 
 class DnsBuffer {
 public:
-  constexpr static int max_requests = 8;
+  constexpr static int    max_requests         = 8;
+  constexpr static size_t max_pending_requests = 256;
 
   DnsBuffer() = default;
   ~DnsBuffer();

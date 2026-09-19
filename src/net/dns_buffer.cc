@@ -45,7 +45,7 @@ void
 DnsBuffer::resolve(void* requester, const std::string& hostname, int family, resolver_callback&& fn) {
   assert(std::this_thread::get_id() == ThreadNet::thread_net()->thread_id());
 
-  auto initialize_fn = [this, requester, fn = std::move(fn)](bool is_active) mutable {
+  auto initialize_fn = [this, requester, &fn](bool is_active) {
       auto guard = std::scoped_lock(m_requesters_mutex);
 
       auto [itr, inserted] = m_requesters.try_emplace(requester, nullptr);
@@ -91,6 +91,13 @@ DnsBuffer::resolve(void* requester, const std::string& hostname, int family, res
     LT_LOG_REQUESTER("added new active query : name:%s family:%d", hostname.c_str(), family);
 
     activate_and_resolve_query(DnsBufferQuery{family, hostname, {initialize_fn(true)}});
+    return;
+  }
+
+  if (m_pending_queries.size() >= max_pending_requests) {
+    LT_LOG_REQUESTER("rejected new query, pending list is full : name:%s family:%d", hostname.c_str(), family);
+
+    fn(nullptr, family == AF_INET6 ? 0 : EAI_AGAIN, nullptr, family == AF_INET ? 0 : EAI_AGAIN);
     return;
   }
 
