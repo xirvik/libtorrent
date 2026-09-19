@@ -13,6 +13,15 @@
 
 namespace torrent {
 
+namespace {
+
+uint64_t
+transaction_key_prefix(const sockaddr* sa) {
+  return (static_cast<uint64_t>(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr) << 16) + sa_port(sa);
+}
+
+} // namespace
+
 template<>
 const DhtMessage::key_list_type DhtMessage::base_type::keys;
 
@@ -62,7 +71,7 @@ DhtTransaction::~DhtTransaction() {
 DhtTransaction::key_type
 DhtTransaction::key(const sockaddr* sa, int id) {
   if (sa_is_inet(sa))
-    return (static_cast<uint64_t>(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr) << 32) + id;
+    return (transaction_key_prefix(sa) << 16) + (id & transaction_id_mask);
   else if (sa_is_inet6(sa))
     throw internal_error("DhtTransaction::key() called with inet6 address.");
   else
@@ -72,11 +81,31 @@ DhtTransaction::key(const sockaddr* sa, int id) {
 bool
 DhtTransaction::key_match(key_type key, const sockaddr* sa) {
   if (sa_is_inet(sa))
-    return (key >> 32) == static_cast<uint64_t>(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr);
+    return (key >> 16) == transaction_key_prefix(sa);
   else if (sa_is_inet6(sa))
     throw internal_error("DhtTransaction::key_match() called with inet6 address.");
   else
     throw internal_error("DhtTransaction::key_match() called with non-inet address.");
+}
+
+char*
+DhtTransaction::write_transaction_id(char* buffer, unsigned int id) {
+  static_assert(transaction_id_size == 2);
+
+  *buffer++ = '0' + transaction_id_size;
+  *buffer++ = ':';
+  *buffer++ = static_cast<char>((id >> 8) & 0xff);
+  *buffer++ = static_cast<char>(id & 0xff);
+
+  return buffer;
+}
+
+unsigned int
+DhtTransaction::read_transaction_id(raw_string id) {
+  static_assert(transaction_id_size == 2);
+
+  return (static_cast<unsigned int>(static_cast<unsigned char>(id.data()[0])) << 8) +
+    static_cast<unsigned char>(id.data()[1]);
 }
 
 //

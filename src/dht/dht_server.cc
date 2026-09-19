@@ -389,7 +389,7 @@ DhtServer::create_announce_peer_response(const DhtMessage& req, const sockaddr* 
 
 void
 DhtServer::process_response(const HashString& id, const sockaddr* sa, const DhtMessage& response) {
-  int  transactionId = static_cast<unsigned char>(response[key_t].as_raw_string().data()[0]);
+  int  transactionId = DhtTransaction::read_transaction_id(response[key_t].as_raw_string());
   auto itr = m_transactions.find(DhtTransaction::key(sa, transactionId));
 
   // Response to a transaction we don't have in our table. At this point it's
@@ -448,7 +448,7 @@ DhtServer::process_response(const HashString& id, const sockaddr* sa, const DhtM
 
 void
 DhtServer::process_error(const sockaddr* sa, const DhtMessage& error) {
-  int  transactionId = static_cast<unsigned char>(error[key_t].as_raw_string().data()[0]);
+  int  transactionId = DhtTransaction::read_transaction_id(error[key_t].as_raw_string());
   auto itr = m_transactions.find(DhtTransaction::key(sa, transactionId));
 
   if (itr == m_transactions.end())
@@ -591,10 +591,8 @@ DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const soc
   DhtMessage query;
 
   // Transaction ID is a bencode string.
-  query[key_t] = raw_bencode(query.data_end, 3);
-  *query.data_end++ = '1';
-  *query.data_end++ = ':';
-  *query.data_end++ = tID;
+  query[key_t] = raw_bencode(query.data_end, DhtTransaction::transaction_id_bencode);
+  query.data_end = DhtTransaction::write_transaction_id(query.data_end, tID);
 
   auto& transaction = itr->second;
 
@@ -667,7 +665,7 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int prio
   // unused one. Since normally only one or two transactions will be active per
   // node, a collision is extremely unlikely, and a linear search for the first
   // open one is the most efficient.
-  unsigned int rnd = static_cast<uint8_t>(random());
+  unsigned int rnd = static_cast<uint16_t>(random());
   unsigned int id = rnd;
 
   auto insertItr = m_transactions.lower_bound(transaction->key(rnd));
@@ -675,7 +673,7 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int prio
   // If key matches, keep trying successive IDs.
   while (insertItr != m_transactions.end() && insertItr->first == transaction->key(id)) {
     ++insertItr;
-    id = static_cast<uint8_t>(id + 1);
+    id = static_cast<uint16_t>(id + 1);
 
     // Give up after trying all possible IDs. This should never happen.
     if (id == rnd)
@@ -815,7 +813,8 @@ DhtServer::event_read() {
 
       // Sanity check the returned transaction ID.
       if ((type == 'r' || type == 'e') &&
-          (!message[key_t].is_raw_string() || message[key_t].as_raw_string().size() != 1))
+          (!message[key_t].is_raw_string() ||
+           message[key_t].as_raw_string().size() != DhtTransaction::transaction_id_size))
         throw dht_error(dht_error_protocol, "Invalid transaction ID type/length.");
 
       // Stupid broken implementations.

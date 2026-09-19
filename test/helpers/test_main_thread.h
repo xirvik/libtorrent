@@ -22,6 +22,7 @@ public:
   void                test_set_cached_time(std::chrono::microseconds t);
   void                test_add_cached_time(std::chrono::microseconds t);
   void                test_process_events_without_cached_time();
+  void                test_poll();
 
 private:
   TestMainThread() = default;

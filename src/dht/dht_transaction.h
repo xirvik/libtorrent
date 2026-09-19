@@ -67,7 +67,7 @@ public:
   // - announce token (8 bytes, needs 20 bytes buffer to build)
   // Never more than one of the above.
   // And additionally for queries we send:
-  // - transaction ID (3 bytes)
+  // - transaction ID (4 bytes)
   static constexpr size_t data_size = 64;
   char data[data_size];
   char* data_end{data};
@@ -127,6 +127,11 @@ public:
   // Key to uniquely identify a transaction with given per-node transaction id.
   using key_type = uint64_t;
 
+  // Transaction ids are sent as a bencoded string of transaction_id_size bytes.
+  static constexpr unsigned int transaction_id_size    = 2;
+  static constexpr unsigned int transaction_id_mask    = (1u << (8 * transaction_id_size)) - 1;
+  static constexpr unsigned int transaction_id_bencode = transaction_id_size + 2;
+
   virtual transaction_type type() const = 0;
 
   virtual bool        is_search()               { return false; }
@@ -134,6 +139,9 @@ public:
   key_type            key(int id) const         { return key(m_socket_address.get(), id); }
   static key_type     key(const sockaddr* sa, int id);
   static bool         key_match(key_type key, const sockaddr* sa);
+
+  static char*        write_transaction_id(char* buffer, unsigned int id);
+  static unsigned int read_transaction_id(raw_string id);
 
   const HashString&   id()                      { return m_id; }
   const auto*         address()                 { return m_socket_address.get(); }

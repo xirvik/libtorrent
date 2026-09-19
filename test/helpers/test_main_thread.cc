@@ -12,6 +12,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/resolver.h"
 #include "torrent/utils/log.h"
+#include "torrent/system/poll.h"
 #include "torrent/system/scheduler.h"
 #include "tracker/thread_tracker.h"
 
@@ -66,6 +67,11 @@ TestMainThread::test_add_cached_time(std::chrono::microseconds t) {
 void
 TestMainThread::test_process_events_without_cached_time() {
   process_events_without_cached_time();
+}
+
+void
+TestMainThread::test_poll() {
+  m_poll->do_poll(0us);
 }
 
 void
