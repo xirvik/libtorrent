@@ -329,7 +329,7 @@ dns_getdn(dnscc_t *pkt, dnscc_t **curp, dnscc_t *end,
 /* skip the DN at position cur in packet ending before pkte,
  * return pointer to the next byte after the DN or NULL on error */
 UDNS_API dnscc_t *
-dns_skipdn(dnscc_t *end, dnscc_t *cur);
+dns_skipdn(dnscc_t *cur, dnscc_t *end);
 
 struct dns_rr {		/* DNS Resource Record */
   dnsc_t dnsrr_dn[DNS_MAXDN];	/* the DN of the RR */

@@ -1224,7 +1224,7 @@ int dns_timeouts(struct dns_ctx *ctx, int maxwait, time_t now) {
   // deadlines.
   int loop = 128;
 
-  while (true) {
+  for (;;) {
     if (--loop <= 0) {
       maxwait = 0;
       break;
@@ -1332,6 +1332,7 @@ int dns_cancel(struct dns_ctx *ctx, struct dns_query *q) {
     return (ctx->dnsc_qstatus = DNS_E_BADQUERY);
   qlist_remove(&ctx->dnsc_qactive, q);
   --ctx->dnsc_nactive;
+  free(q);
   dns_request_utm(ctx, 0);
   return 0;
 }

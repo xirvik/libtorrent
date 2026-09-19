@@ -408,7 +408,17 @@ UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, v
     }
 
     query->cname4_name = result->dnsa4_cname;
-    query->a4_query = ::dns_submit_a4(ctx, query->cname4_name.c_str(), 0, &UdnsResolverInternal::a4_callback_wrapper, query);
+    query->a4_query = ::dns_submit_a4(ctx, query->cname4_name.c_str(), DNS_NOSRCH, &UdnsResolverInternal::a4_callback_wrapper, query);
+
+    if (query->a4_query == nullptr) {
+      query->error_sin = udnserror_to_gaierror(::dns_status(ctx));
+
+      LT_LOG_QUERY("A CNAME retry could not be submitted : original:%s cname:%s error:%s",
+                   query->hostname.c_str(), query->cname4_name.c_str(), system::gai_enum_error(query->error_sin));
+
+      UdnsResolver::process_partial_result_unsafe(itr);
+      return;
+    }
 
     LT_LOG_QUERY("A CNAME encountered, retrying : original:%s cname:%s depth:%u",
                  query->hostname.c_str(), query->cname4_name.c_str(), query->cname4_depth);
@@ -468,7 +478,17 @@ UdnsResolverInternal::a6_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a6 *result, v
     }
 
     query->cname6_name = result->dnsa6_cname;
-    query->a6_query = ::dns_submit_a6(ctx, query->cname6_name.c_str(), 0, &UdnsResolverInternal::a6_callback_wrapper, query);
+    query->a6_query = ::dns_submit_a6(ctx, query->cname6_name.c_str(), DNS_NOSRCH, &UdnsResolverInternal::a6_callback_wrapper, query);
+
+    if (query->a6_query == nullptr) {
+      query->error_sin6 = udnserror_to_gaierror(::dns_status(ctx));
+
+      LT_LOG_QUERY("AAAA CNAME retry could not be submitted : original:%s cname:%s error:%s",
+                   query->hostname.c_str(), query->cname6_name.c_str(), system::gai_enum_error(query->error_sin6));
+
+      UdnsResolver::process_partial_result_unsafe(itr);
+      return;
+    }
 
     LT_LOG_QUERY("AAAA CNAME encountered, retrying : original:%s cname:%s depth:%u",
                  query->hostname.c_str(), query->cname6_name.c_str(), query->cname6_depth);
