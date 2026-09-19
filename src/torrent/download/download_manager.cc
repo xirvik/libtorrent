@@ -2,6 +2,7 @@
 
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
+#include "torrent/hash_string.h"
 
 #include "download/download_wrapper.h"
 #include "download_manager.h"
@@ -37,6 +38,9 @@ DownloadManager::clear() {
 
 DownloadManager::iterator
 DownloadManager::find(const std::string& hash) {
+  if (hash.size() != HashString::size_data)
+    return end();
+
   return find(*HashString::cast_from(hash));
 }
 
