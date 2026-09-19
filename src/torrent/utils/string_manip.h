@@ -30,7 +30,7 @@ std::string                         transform_to_base64(const std::string& src) 
 std::optional<std::vector<uint8_t>> transform_from_base64_unsafe(const std::string& src) LIBTORRENT_EXPORT;
 
 char             hex_to_value_or_zero(char c);
-char             hex_to_value_or_error(char c);
+int              hex_to_value_or_error(char c);
 char             value_to_hex0(char value);
 char             value_to_hex1(char value);
 
@@ -102,7 +102,7 @@ hex_to_value_or_zero(char c) {
   return 0;
 }
 
-inline char
+inline int
 hex_to_value_or_error(char c) {
   if (c >= '0' && c <= '9')
     return c - '0';
@@ -225,7 +225,7 @@ transform_from_hex(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr
     if (dst_first == dst_last)
       break;
 
-    char high = hex_to_value_or_error(*src_first++);
+    int high = hex_to_value_or_error(*src_first++);
 
     if (src_first == src_last)
       break;
@@ -233,7 +233,7 @@ transform_from_hex(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr
     if (dst_first == dst_last || high == -1)
       return dst_first_start;
 
-    char low = hex_to_value_or_error(*src_first++);
+    int low = hex_to_value_or_error(*src_first++);
 
     if (dst_first == dst_last || low == -1)
       return dst_first_start;

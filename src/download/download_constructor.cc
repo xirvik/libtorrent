@@ -383,10 +383,10 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
         if (end - pos < 2)
           throw input_error("Invalid magnet URI.");
 
-        char high = utils::hex_to_value_or_error(pos[0]);
-        char low  = utils::hex_to_value_or_error(pos[1]);
+        int high = utils::hex_to_value_or_error(pos[0]);
+        int low  = utils::hex_to_value_or_error(pos[1]);
 
-        if (high == static_cast<char>(-1) || low == static_cast<char>(-1))
+        if (high == -1 || low == -1)
           throw input_error("Invalid magnet URI.");
 
         c = (high << 4) | low;

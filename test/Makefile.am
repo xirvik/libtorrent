@@ -65,6 +65,8 @@ LibTorrent_Test_Torrent_Runtime_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/runtime/test_socket_manager.h
 
 LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
+	torrent/utils/test_string_manip.cc \
+	torrent/utils/test_string_manip.h \
 	torrent/utils/test_extents.cc \
 	torrent/utils/test_extents.h \
 	torrent/utils/test_log.cc \
