@@ -61,6 +61,43 @@ test_socket_address::test_sa_is_broadcast() {
 }
 
 void
+test_socket_address::test_sa_is_private() {
+  auto sin_10       = wrap_ai_get_first_sa("10.1.2.3");
+  auto sin_172_16   = wrap_ai_get_first_sa("172.16.0.1");
+  auto sin_172_31   = wrap_ai_get_first_sa("172.31.255.255");
+  auto sin_192_168  = wrap_ai_get_first_sa("192.168.1.1");
+  auto sin_172_15   = wrap_ai_get_first_sa("172.15.255.255");
+  auto sin_172_32   = wrap_ai_get_first_sa("172.32.0.0");
+  auto sin_192_167  = wrap_ai_get_first_sa("192.167.255.255");
+  auto sin_routable = wrap_ai_get_first_sa("1.2.3.4");
+
+  auto sin6_v4_192_168  = wrap_ai_get_first_sa("::ffff:192.168.1.1");
+  auto sin6_v4_10       = wrap_ai_get_first_sa("::ffff:10.1.2.3");
+  auto sin6_v4_routable = wrap_ai_get_first_sa("::ffff:1.2.3.4");
+
+  auto sin6_ula      = wrap_ai_get_first_sa("fd00::1");
+  auto sin6_ula_fc   = wrap_ai_get_first_sa("fc00::1");
+  auto sin6_routable = wrap_ai_get_first_sa("2001:4860:4860::8888");
+
+  CPPUNIT_ASSERT(torrent::sa_is_private(sin_10.get()));
+  CPPUNIT_ASSERT(torrent::sa_is_private(sin_172_16.get()));
+  CPPUNIT_ASSERT(torrent::sa_is_private(sin_172_31.get()));
+  CPPUNIT_ASSERT(torrent::sa_is_private(sin_192_168.get()));
+  CPPUNIT_ASSERT(torrent::sa_is_private(sin6_ula.get()));
+  CPPUNIT_ASSERT(torrent::sa_is_private(sin6_ula_fc.get()));
+
+  CPPUNIT_ASSERT(torrent::sa_is_private(sin6_v4_192_168.get()));
+  CPPUNIT_ASSERT(torrent::sa_is_private(sin6_v4_10.get()));
+
+  CPPUNIT_ASSERT(!torrent::sa_is_private(sin_172_15.get()));
+  CPPUNIT_ASSERT(!torrent::sa_is_private(sin_172_32.get()));
+  CPPUNIT_ASSERT(!torrent::sa_is_private(sin_192_167.get()));
+  CPPUNIT_ASSERT(!torrent::sa_is_private(sin_routable.get()));
+  CPPUNIT_ASSERT(!torrent::sa_is_private(sin6_v4_routable.get()));
+  CPPUNIT_ASSERT(!torrent::sa_is_private(sin6_routable.get()));
+}
+
+void
 test_socket_address::test_make() {
   torrent::sa_unique_ptr sa_unspec = torrent::sa_make_unspec();
   CPPUNIT_ASSERT(sa_unspec != nullptr);

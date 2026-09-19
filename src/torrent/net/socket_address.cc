@@ -47,6 +47,13 @@ sin6_addr32_index(const sockaddr_in6* sa, unsigned int index) {
     (sa->sin6_addr.s6_addr[index * 4 + 3] << 0);
 }
 
+static constexpr bool
+is_private_inet_address(uint32_t address) {
+  return (address & 0xff000000) == 0x0a000000 ||
+    (address & 0xfff00000) == 0xac100000 ||
+    (address & 0xffff0000) == 0xc0a80000;
+}
+
 static in6_addr
 sin6_make_addr32(uint32_t addr0, uint32_t addr1, uint32_t addr2, uint32_t addr3) {
   uint32_t addr32[4];
@@ -145,6 +152,31 @@ sin_is_loopback(const sockaddr_in* sa) {
 bool
 sin6_is_loopback(const sockaddr_in6* sa) {
   return IN6_IS_ADDR_LOOPBACK(&sa->sin6_addr);
+}
+
+bool
+sa_is_private(const sockaddr* sa) {
+  switch (sa->sa_family) {
+  case AF_INET:
+    return sin_is_private(reinterpret_cast<const sockaddr_in*>(sa));
+  case AF_INET6:
+    if (sa_is_v4mapped(sa))
+      return is_private_inet_address(sin6_addr32_index(reinterpret_cast<const sockaddr_in6*>(sa), 3));
+
+    return sin6_is_private(reinterpret_cast<const sockaddr_in6*>(sa));
+  default:
+    return false;
+  }
+}
+
+bool
+sin_is_private(const sockaddr_in* sa) {
+  return is_private_inet_address(ntohl(sa->sin_addr.s_addr));
+}
+
+bool
+sin6_is_private(const sockaddr_in6* sa) {
+  return (sa->sin6_addr.s6_addr[0] & 0xfe) == 0xfc;
 }
 
 bool

@@ -73,6 +73,20 @@ NetworkConfig::is_prefer_ipv6() const {
   return m_prefer_ipv6;
 }
 
+bool
+NetworkConfig::is_block_private_peers() const {
+  auto guard = lock_guard();
+  return m_block_private_peers;
+}
+
+void
+NetworkConfig::set_block_private_peers(bool v) {
+  auto guard = lock_guard();
+
+  m_block_private_peers = v;
+  notify_changes_unsafe();
+}
+
 void
 NetworkConfig::set_block_ipv4(bool v) {
   auto guard = lock_guard();

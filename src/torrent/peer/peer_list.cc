@@ -11,6 +11,7 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG_EVENTS(log_fmt, ...)                                     \
@@ -109,6 +110,8 @@ PeerList::insert_available(const void* al) {
   uint32_t unneeded = 0;
   uint32_t updated = 0;
 
+  auto block_private = runtime::network_config()->is_block_private_peers();
+
   auto remaining = m_available_list->max_size() - m_available_list->size();
   auto reserve_size = m_available_list->size() + std::min(remaining, address_list->size());
 
@@ -130,7 +133,8 @@ PeerList::insert_available(const void* al) {
     auto addr_str = sa_addr_str(&addr.sa);
     auto port = sa_port(&addr.sa);
 
-    if (!socket_address_key::is_comparable_sockaddr(&addr.sa) || port == 0) {
+    if (!socket_address_key::is_comparable_sockaddr(&addr.sa) || port == 0 ||
+        (block_private && sa_is_private(&addr.sa))) {
       invalid++;
       LT_LOG_ADDRESS("adding available address: skipped invalid : %s", sa_pretty_str(&addr.sa).c_str());
       continue;

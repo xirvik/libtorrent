@@ -5,6 +5,7 @@ class test_socket_address : public CppUnit::TestFixture {
 
   CPPUNIT_TEST(test_sa_is_any);
   CPPUNIT_TEST(test_sa_is_broadcast);
+  CPPUNIT_TEST(test_sa_is_private);
 
   CPPUNIT_TEST(test_make);
 
@@ -24,6 +25,7 @@ class test_socket_address : public CppUnit::TestFixture {
 public:
   void test_sa_is_any();
   void test_sa_is_broadcast();
+  void test_sa_is_private();
 
   void test_make();
 

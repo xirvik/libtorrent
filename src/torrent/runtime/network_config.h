@@ -40,12 +40,14 @@ public:
   bool                is_block_incoming() const;
   bool                is_block_outgoing() const;
   bool                is_prefer_ipv6() const;
+  bool                is_block_private_peers() const;
 
   void                set_block_ipv4(bool v);
   void                set_block_ipv6(bool v);
   void                set_block_ipv4in6(bool v);
   void                set_block_outgoing(bool v);
   void                set_prefer_ipv6(bool v);
+  void                set_block_private_peers(bool v);
 
   int                 priority() const;
   void                set_priority(int p);
@@ -172,6 +174,7 @@ private:
   bool                m_block_ipv4in6{};
   bool                m_block_outgoing{};
   bool                m_prefer_ipv6{};
+  bool                m_block_private_peers{};
 
   // Directly modified by ProxyManager.
   bool                m_block_udp{};
