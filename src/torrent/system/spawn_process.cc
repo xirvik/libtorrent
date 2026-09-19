@@ -3,6 +3,7 @@
 #include "torrent/system/spawn_process.h"
 
 #include <cassert>
+#include <cerrno>
 #include <fcntl.h>
 #include <spawn.h>
 #include <unistd.h>
@@ -140,8 +141,10 @@ SpawnProcess::capture_child_output() {
       break;
 
     if (length == -1) {
-      // TODO: This should throw input_error
-      break;
+      if (errno == EINTR)
+        continue;
+
+      throw torrent::input_error("SpawnProcess::capture_child_output() read failed: " + system::errno_enum_str(errno));
     }
 
     result.append(buffer, length);
